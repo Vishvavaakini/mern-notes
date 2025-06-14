@@ -6,9 +6,13 @@ import genToken from "../config/token.js";
 //  Sign Up Controller
 export const signUp = async (req, res) => {
   try {
-    const { firstName, lastName, email, password, UserName } = req.body;
+    const { name, email, password } = req.body;
 
     // Validation
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
     if (password.length < 8) {
       return res.status(400).json({ message: "Password must be at least 8 characters" });
     }
@@ -18,20 +22,13 @@ export const signUp = async (req, res) => {
       return res.status(400).json({ message: "Email already exists" });
     }
 
-    const existUserName = await User.findOne({ UserName });
-    if (existUserName) {
-      return res.status(400).json({ message: "Username already exists" });
-    }
-
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await User.create({
-      firstName,
-      lastName,
+      name,          // This matches your schema
       email,
       password: hashedPassword,
-      UserName,
     });
 
     const token = await genToken(user._id);
@@ -41,7 +38,7 @@ export const signUp = async (req, res) => {
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       sameSite: "strict",
-      secure: process.env.NODE_ENV === "production", // Fix typo: NODE_ENVIRONMENT → NODE_ENV
+      secure: process.env.NODE_ENV === "production",
     });
 
     return res.status(201).json({ message: "User created", user });
@@ -72,7 +69,7 @@ export const login = async (req, res) => {
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
       sameSite: "strict",
-      secure: process.env.NODE_ENV === "production", // Fix typo
+      secure: process.env.NODE_ENV === "production",
     });
 
     return res.status(200).json({ message: "Login successful", user: existingUser });
@@ -88,7 +85,7 @@ export const logout = async (req, res) => {
     res.clearCookie("token", {
       httpOnly: true,
       sameSite: "strict",
-      secure: process.env.NODE_ENV === "production", // Fix typo
+      secure: process.env.NODE_ENV === "production",
     });
 
     return res.status(200).json({ message: "Logged out successfully" });
